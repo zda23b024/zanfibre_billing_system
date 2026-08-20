@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Router, Users, Bell, GitBranch, HardDrive,
   Settings, Network, ChevronLeft, ChevronRight, Layers, ChevronDown, SlidersHorizontal, X, Wifi,
   Server, Globe, Clock, Shield, FileText, Activity, BarChart3, Ticket, ArrowUpCircle, Radio,
-  LayoutGrid,
+  LayoutGrid, CreditCard,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { APP_VERSION } from '../../version';
@@ -37,6 +37,7 @@ const networkServicesSubItems = [
 ];
 
 const operationsItems = [
+  { to: '/billing',   icon: CreditCard,      label: 'Billing' },
   { to: '/firmware',  icon: ArrowUpCircle,   label: 'Firmware' },
   { to: '/backups',   icon: HardDrive,       label: 'Backups' },
 ];
@@ -227,10 +228,10 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
         style={{ borderColor: 'var(--line)' }}
       >
         {/* Theme-aware logo: light-tile icon in light mode, navy-tile icon in dark mode */}
-        <img src="/logo-light.svg" alt="MikroTik Manager" className="w-[45px] h-[45px] flex-shrink-0 block dark:hidden" />
-        <img src="/logo-dark.svg" alt="MikroTik Manager" className="w-[45px] h-[45px] flex-shrink-0 hidden dark:block" />
+        <img src="/logo-light.svg" alt="Zanfibre" className="w-[45px] h-[45px] flex-shrink-0 block dark:hidden" />
+        <img src="/logo-dark.svg" alt="Zanfibre" className="w-[45px] h-[45px] flex-shrink-0 hidden dark:block" />
         <div className={clsx(isCollapsed && 'md:hidden')}>
-          <div className="text-[14px] font-semibold leading-none" style={{ color: 'var(--ink)' }}>MikroTik Manager</div>
+          <div className="text-[14px] font-semibold leading-none" style={{ color: 'var(--ink)' }}>Zanfibre</div>
           <div className="text-[11px] leading-none mt-[3px]" style={{ color: 'var(--ink-3)' }}>{APP_VERSION}</div>
         </div>
         <button

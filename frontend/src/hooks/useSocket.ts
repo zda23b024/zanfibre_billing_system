@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuthStore } from '../store/authStore';
+import { SOCKET_BASE_URL } from '../config';
 
 let globalSocket: Socket | null = null;
 
@@ -26,7 +27,7 @@ export function useSocket(
     }
 
     if (!globalSocket) {
-      globalSocket = io('/', {
+      globalSocket = io(SOCKET_BASE_URL, {
         path: '/socket.io',
         auth: { token: useAuthStore.getState().token },
         transports: ['websocket'],

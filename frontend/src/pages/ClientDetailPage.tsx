@@ -261,7 +261,7 @@ function LimitBandwidth({ deviceId, ip, name }: { deviceId: number; ip: string; 
         name: `mm-${name}-${ip}`.slice(0, 60).replace(/[^a-zA-Z0-9._-]/g, '_'),
         target: ip,
         max_limit: `${up || '0'}/${down || '0'}`,
-        comment: `Limit for ${name} (MikroTik Manager)`,
+        comment: `Limit for ${name} (Zanfibre)`,
       });
       setStatus('done'); setTimeout(() => { setStatus('idle'); setOpen(false); }, 2500);
     } catch (e) {

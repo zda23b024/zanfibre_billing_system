@@ -22,7 +22,7 @@ function resolveCurrentVersion(): string {
 }
 
 const CURRENT_VERSION = resolveCurrentVersion();
-const RAW_URL = 'https://raw.githubusercontent.com/2GT-Media-Group-LLC/mikrotik-manager/main/frontend/package.json';
+const RAW_URL = process.env.VERSION_CHECK_URL || '';
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 // Normalise "0.11.7-beta" or "v0.11.7 Beta" → [0, 11, 7]
@@ -63,15 +63,17 @@ router.get('/version-check', async (_req: Request, res: Response) => {
       });
     }
 
-    // Fetch latest version from GitHub
+    // Fetch latest version from the configured release metadata endpoint.
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8_000);
     let latestVersion = CURRENT_VERSION;
     try {
-      const resp = await fetch(RAW_URL, { signal: controller.signal });
-      if (resp.ok) {
-        const pkg = await resp.json() as { version?: string };
-        if (pkg.version) latestVersion = pkg.version;
+      if (RAW_URL) {
+        const resp = await fetch(RAW_URL, { signal: controller.signal });
+        if (resp.ok) {
+          const pkg = await resp.json() as { version?: string };
+          if (pkg.version) latestVersion = pkg.version;
+        }
       }
     } finally {
       clearTimeout(timeout);

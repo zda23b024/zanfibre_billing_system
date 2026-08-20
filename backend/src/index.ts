@@ -62,6 +62,11 @@ import networkServicesRoutes from './routes/networkServices';
 import trafficAnalyticsRoutes from './routes/trafficAnalytics';
 import credentialPresetsRoutes from './routes/credentialPresets';
 import systemRoutes from './routes/system';
+import portalRoutes from './routes/portal';
+import billingRoutes from './routes/billing';
+import paymentsRoutes from './routes/payments';
+import { assertSelcomConfigured } from './services/billing/SelcomPaymentProvider';
+import { billingService } from './services/billing/BillingService';
 import { auditMiddleware } from './middleware/auditMiddleware';
 
 // ─── Secret hygiene ───────────────────────────────────────────────────────────
@@ -300,6 +305,8 @@ app.get('/api/health', (_req, res) => {
 // ─── Routes ───────────────────────────────────────────────────────────────────
 app.use('/api/auth/oidc', oidcRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/portal', portalRoutes);
+app.use('/api/payments', paymentsRoutes);
 app.use('/api/devices', devicesRoutes);
 app.use('/api/clients', clientsRoutes);
 app.use('/api/events', eventsRoutes);
@@ -326,6 +333,7 @@ app.use('/api/maintenance-windows', maintenanceWindowsRoutes);
 app.use('/api/config-templates', configTemplatesRoutes);
 app.use('/api/config-history', configHistoryRoutes);
 app.use('/api/system', systemRoutes);
+app.use('/api/billing', billingRoutes);
 
 // ─── Error Handler ────────────────────────────────────────────────────────────
 app.use(errorHandler);
@@ -333,6 +341,7 @@ app.use(errorHandler);
 // ─── Startup ─────────────────────────────────────────────────────────────────
 async function start(): Promise<void> {
   provisionSecrets();
+  assertSelcomConfigured();
 
   // Wait for DB to be ready
   for (let i = 0; i < 10; i++) {
@@ -388,14 +397,22 @@ async function start(): Promise<void> {
   // Scheduled report mailer (hourly check)
   reportService.startScheduler();
 
+  const billingExpiryTimer = setInterval(() => {
+    billingService.expirePaidSessions().catch((e) =>
+      console.warn('[billing] session expiry sweep skipped:', (e as Error).message)
+    );
+  }, 60_000);
+  void billingService.expirePaidSessions().catch(() => {});
+
   // Start HTTP server
   httpServer.listen(PORT, '0.0.0.0', () => {
-    console.log(`✓ Mikrotik Manager backend running on port ${PORT}`);
+    console.log(`✓ Zanfibre backend running on port ${PORT}`);
   });
 
   // Graceful shutdown
   const shutdown = async () => {
     console.log('Shutting down...');
+    clearInterval(billingExpiryTimer);
     await stopBulkAddWorker();
     await netflowCollector.stop();
     await pollerService.stop();

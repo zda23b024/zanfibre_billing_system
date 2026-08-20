@@ -16,7 +16,7 @@ const scans: ScanRecord[] = [{
     ]},
   ],
 }, {
-  deviceName: '2GT-NW-100G',
+  deviceName: 'Zanfibre-NW-100G',
   scannedAt: '2026-07-01T12:05:00Z',
   networks: [
     // Same evil twin seen stronger from another AP — should dedup, keep strongest
@@ -38,7 +38,7 @@ describe('classifyScans', () => {
 
   it('dedups across scanning devices, keeping the strongest sighting', () => {
     expect(rogues[0].signal).toBe(-48);
-    expect(rogues[0].seenBy).toBe('2GT-NW-100G');
+    expect(rogues[0].seenBy).toBe('Zanfibre-NW-100G');
   });
 
   it('ignores our own radios entirely', () => {

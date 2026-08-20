@@ -24,7 +24,7 @@ function parseCertInfo(pem: string) {
   const daysLeft = Math.floor((validTo.getTime() - now.getTime()) / 86400000);
   const isSelfSigned = cert.subject === cert.issuer;
 
-  // Extract CN from subject string like "CN=Mikrotik Manager, O=Self-Signed"
+  // Extract CN from subject string like "CN=Zanfibre, O=Self-Signed"
   const cnMatch = cert.subject.match(/CN=([^,\n]+)/);
   const cn = cnMatch ? cnMatch[1].trim() : cert.subject;
 
@@ -66,7 +66,7 @@ router.post('/regenerate', requireAdmin, async (_req: Request, res: Response) =>
       '-newkey', 'rsa:2048',
       '-keyout', KEY_PATH,
       '-out', CERT_PATH,
-      '-subj', '/CN=Mikrotik Manager/O=Self-Signed/OU=Local/C=US',
+      '-subj', '/CN=Zanfibre/O=Self-Signed/OU=Local/C=US',
       '-addext', 'subjectAltName=IP:127.0.0.1,DNS:localhost',
     ], { timeout: 30000 });
 

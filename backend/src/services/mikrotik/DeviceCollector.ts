@@ -2028,6 +2028,10 @@ export class DeviceCollector {
     await this.client.execute('/ip/hotspot/user/remove', { '.id': id });
   }
 
+  async getHotspotHosts(): Promise<Record<string, string>[]> {
+    return this.client.execute('/ip/hotspot/host/print', { detail: '' }).catch(() => [] as Record<string, string>[]);
+  }
+
   async getHotspotActive(): Promise<Record<string, string>[]> {
     return this.client.execute('/ip/hotspot/active/print', { detail: '' }).catch(() => [] as Record<string, string>[]);
   }
@@ -2048,6 +2052,88 @@ export class DeviceCollector {
 
   async removeWalledGardenEntry(id: string): Promise<void> {
     await this.client.execute('/ip/hotspot/walled-garden/remove', { '.id': id });
+  }
+
+  async getHotspotIpBindings(): Promise<Record<string, string>[]> {
+    return this.client.execute('/ip/hotspot/ip-binding/print', { detail: '' }).catch(() => [] as Record<string, string>[]);
+  }
+
+  async removeHotspotIpBinding(id: string): Promise<void> {
+    await this.client.execute('/ip/hotspot/ip-binding/remove', { '.id': id });
+  }
+
+  async authorizePaidHotspotClient(opts: {
+    macAddress: string;
+    ipAddress: string;
+    profileName: string;
+    rateLimit?: string | null;
+    comment: string;
+  }): Promise<{ bindingId: string | null; queueName: string | null; verified: boolean }> {
+    const mac = opts.macAddress.toLowerCase();
+    const ip = opts.ipAddress;
+    const [hosts, active] = await Promise.all([this.getHotspotHosts(), this.getHotspotActive()]);
+    const verified = [...hosts, ...active].some((row) => {
+      const rowMac = String(row['mac-address'] || '').toLowerCase();
+      const rowIp = String(row['address'] || '');
+      return (!mac || rowMac === mac) && (!ip || rowIp === ip);
+    });
+    if (!verified) {
+      throw new Error('Captive device is not visible on this Hotspot router');
+    }
+
+    const bindings = await this.getHotspotIpBindings();
+    const existing = bindings.find((row) =>
+      String(row['mac-address'] || '').toLowerCase() === mac ||
+      (ip && String(row['address'] || '') === ip)
+    );
+    const bindingParams: Record<string, string> = {
+      'mac-address': opts.macAddress.toUpperCase(),
+      address: ip,
+      type: 'bypassed',
+      comment: opts.comment,
+      disabled: 'no',
+    };
+    let bindingId: string | null = existing?.['.id'] ?? null;
+    if (bindingId) {
+      await this.client.execute('/ip/hotspot/ip-binding/set', { '.id': bindingId, ...bindingParams });
+    } else {
+      await this.client.execute('/ip/hotspot/ip-binding/add', bindingParams);
+      const next = await this.getHotspotIpBindings();
+      bindingId = next.find((row) =>
+        String(row['mac-address'] || '').toLowerCase() === mac && String(row['address'] || '') === ip
+      )?.['.id'] ?? null;
+    }
+
+    let queueName: string | null = null;
+    if (opts.rateLimit) {
+      queueName = `paid-${mac.replace(/:/g, '')}`;
+      const queues = await this.getSimpleQueues();
+      const existingQueue = queues.find((row) => row['name'] === queueName);
+      const queueParams = {
+        name: queueName,
+        target: `${ip}/32`,
+        'max-limit': opts.rateLimit,
+        comment: opts.comment,
+      };
+      if (existingQueue?.['.id']) {
+        await this.updateSimpleQueue(existingQueue['.id'], queueParams);
+      } else {
+        await this.addSimpleQueue(queueParams);
+      }
+    }
+
+    return { bindingId, queueName, verified };
+  }
+
+  async deauthorizePaidHotspotClient(opts: { bindingId?: string | null; queueName?: string | null }): Promise<void> {
+    if (opts.bindingId) {
+      await this.removeHotspotIpBinding(opts.bindingId).catch(() => {});
+    }
+    if (opts.queueName) {
+      const queues = await this.getSimpleQueues();
+      const queue = queues.find((row) => row['name'] === opts.queueName);
+      if (queue?.['.id']) await this.removeSimpleQueue(queue['.id']).catch(() => {});
+    }
   }
 
   /**

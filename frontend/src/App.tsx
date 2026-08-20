@@ -26,6 +26,15 @@ import NetworkServicesNetflowPage from './pages/NetworkServicesNetflowPage';
 import NetworkServicesDiscoveryPage from './pages/NetworkServicesDiscoveryPage';
 import TrafficAnalyticsPage from './pages/TrafficAnalyticsPage';
 import SecurityPage from './pages/SecurityPage';
+import BillingPage from './pages/BillingPage';
+import PortalHomePage from './pages/portal/PortalHomePage';
+import PortalPackagePage from './pages/portal/PortalPackagePage';
+import PortalCheckoutPage from './pages/portal/PortalCheckoutPage';
+import PortalPaymentPendingPage from './pages/portal/PortalPaymentPendingPage';
+import PortalPaymentSuccessPage from './pages/portal/PortalPaymentSuccessPage';
+import PortalPaymentFailedPage from './pages/portal/PortalPaymentFailedPage';
+import PortalStatusPage from './pages/portal/PortalStatusPage';
+import PortalSupportPage from './pages/portal/PortalSupportPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = useAuthStore((s) => s.token);
@@ -39,6 +48,15 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/auth/callback" element={<OidcCallbackPage />} />
+        <Route path="/portal" element={<PortalHomePage />} />
+        <Route path="/portal/package/:id" element={<PortalPackagePage />} />
+        <Route path="/portal/checkout" element={<PortalCheckoutPage />} />
+        <Route path="/portal/payment/pending" element={<PortalPaymentPendingPage />} />
+        <Route path="/portal/payment/success" element={<PortalPaymentSuccessPage />} />
+        <Route path="/portal/payment/failed" element={<PortalPaymentFailedPage />} />
+        <Route path="/portal/voucher" element={<Navigate to="/portal" replace />} />
+        <Route path="/portal/status" element={<PortalStatusPage />} />
+        <Route path="/portal/support" element={<PortalSupportPage />} />
         <Route
           path="/"
           element={
@@ -77,6 +95,7 @@ export default function App() {
           <Route path="network-services/discovery" element={<NetworkServicesDiscoveryPage />} />
           <Route path="traffic" element={<TrafficAnalyticsPage />} />
           <Route path="security" element={<SecurityPage />} />
+          <Route path="billing" element={<BillingPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>

@@ -4,7 +4,7 @@ describe('detectLockoutRisk', () => {
   it('flags a broad input-chain drop with no source scoping', () => {
     const r = detectLockoutRisk({ chain: 'input', action: 'drop' });
     expect(r.risky).toBe(true);
-    expect(r.reason).toMatch(/lock MikroTik Manager/);
+    expect(r.reason).toMatch(/lock Zanfibre/);
   });
 
   it('flags an unscoped input drop targeting a management port (ssh)', () => {

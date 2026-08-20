@@ -1,5 +1,6 @@
 import axios, { AxiosError } from 'axios';
 import { useAuthStore } from '../store/authStore';
+import { API_BASE_URL } from '../config';
 import type {
   Device,
   Interface,
@@ -25,7 +26,7 @@ import type {
 } from '../types';
 
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: API_BASE_URL,
   timeout: 30000,
 });
 
@@ -496,6 +497,34 @@ export const guestWifiApi = {
     api.put(`/guest-wifi/servers/${encodeURIComponent(id)}`, { deviceId, disabled }),
   removeServer: (deviceId: number, id: string) =>
     api.delete(`/guest-wifi/servers/${encodeURIComponent(id)}`, { params: { deviceId } }),
+};
+
+export interface BillingPackage {
+  id: number;
+  name: string;
+  description: string | null;
+  price: string;
+  currency: string;
+  duration: number;
+  duration_unit: string;
+  data_limit_mb: number | null;
+  speed_download: string | null;
+  speed_upload: string | null;
+  device_limit: number;
+  is_active: boolean;
+}
+
+export const billingApi = {
+  stats: () => api.get<Record<string, unknown>>('/billing/stats'),
+  packages: () => api.get<BillingPackage[]>('/billing/packages'),
+  payments: () => api.get<Record<string, string | number | null>[]>('/billing/payments'),
+  refreshPayment: (id: number) => api.post<Record<string, unknown>>(`/billing/payments/${id}/refresh`),
+  approveManualPayment: (id: number) => api.post<Record<string, unknown>>(`/billing/payments/${id}/approve-manual`),
+  rejectManualPayment: (id: number) => api.post<Record<string, unknown>>(`/billing/payments/${id}/reject-manual`),
+  retryActivation: (id: number) => api.post<Record<string, unknown>>(`/billing/payments/${id}/retry-activation`),
+  sessions: () => api.get<Record<string, string | number | null>[]>('/billing/sessions'),
+  customers: () => api.get<Record<string, string | number | null>[]>('/billing/customers'),
+  smsLogs: () => api.get<Record<string, string | number | null>[]>('/billing/sms-logs'),
 };
 
 // ─── Platform & automation ──────────────────────────────────────────────────────

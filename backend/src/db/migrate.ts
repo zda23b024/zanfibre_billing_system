@@ -512,6 +512,132 @@ CREATE TABLE IF NOT EXISTS wireless_security_profiles (
   updated_at            TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(device_id, name)
 );
+
+-- Customer billing portal: kept separate from router/admin management while
+-- reusing devices for MikroTik activation when a paid plan targets a router.
+CREATE TABLE IF NOT EXISTS billing_customers (
+  id         SERIAL PRIMARY KEY,
+  phone      VARCHAR(20) NOT NULL UNIQUE,
+  name       VARCHAR(100),
+  email      VARCHAR(255),
+  status     VARCHAR(20) NOT NULL DEFAULT 'active',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS billing_packages (
+  id             SERIAL PRIMARY KEY,
+  name           VARCHAR(100) NOT NULL,
+  description    TEXT,
+  price          NUMERIC(12,2) NOT NULL,
+  currency       VARCHAR(8) NOT NULL DEFAULT 'TZS',
+  duration       INTEGER NOT NULL,
+  duration_unit  VARCHAR(10) NOT NULL DEFAULT 'hours',
+  data_limit_mb  INTEGER,
+  speed_download VARCHAR(20),
+  speed_upload   VARCHAR(20),
+  device_limit   INTEGER NOT NULL DEFAULT 1,
+  is_active      BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at     TIMESTAMPTZ DEFAULT NOW(),
+  updated_at     TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(name)
+);
+
+CREATE TABLE IF NOT EXISTS billing_payments (
+  id                 SERIAL PRIMARY KEY,
+  customer_id         INTEGER NOT NULL REFERENCES billing_customers(id) ON DELETE CASCADE,
+  package_id          INTEGER NOT NULL REFERENCES billing_packages(id) ON DELETE RESTRICT,
+  amount              NUMERIC(12,2) NOT NULL,
+  currency            VARCHAR(8) NOT NULL DEFAULT 'TZS',
+  provider            VARCHAR(50) NOT NULL DEFAULT 'selcom',
+  provider_reference  VARCHAR(255),
+  provider_order_id   VARCHAR(255),
+  captive_session_id  INTEGER,
+  status              VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+  phone               VARCHAR(20) NOT NULL,
+  created_at          TIMESTAMPTZ DEFAULT NOW(),
+  updated_at          TIMESTAMPTZ DEFAULT NOW(),
+  confirmed_at        TIMESTAMPTZ,
+  failed_at           TIMESTAMPTZ,
+  raw_provider_status JSONB,
+  fulfillment_status  VARCHAR(30) NOT NULL DEFAULT 'PENDING',
+  fulfilled_at        TIMESTAMPTZ,
+  fulfillment_error   TEXT
+);
+ALTER TABLE billing_payments ADD COLUMN IF NOT EXISTS provider_order_id VARCHAR(255);
+ALTER TABLE billing_payments ADD COLUMN IF NOT EXISTS captive_session_id INTEGER;
+ALTER TABLE billing_payments ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+ALTER TABLE billing_payments ADD COLUMN IF NOT EXISTS failed_at TIMESTAMPTZ;
+ALTER TABLE billing_payments ADD COLUMN IF NOT EXISTS raw_provider_status JSONB;
+ALTER TABLE billing_payments ADD COLUMN IF NOT EXISTS fulfillment_status VARCHAR(30) NOT NULL DEFAULT 'PENDING';
+ALTER TABLE billing_payments ADD COLUMN IF NOT EXISTS fulfilled_at TIMESTAMPTZ;
+ALTER TABLE billing_payments ADD COLUMN IF NOT EXISTS fulfillment_error TEXT;
+CREATE INDEX IF NOT EXISTS idx_billing_payments_status ON billing_payments(status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_billing_payments_provider_order ON billing_payments(provider, provider_order_id);
+
+CREATE TABLE IF NOT EXISTS billing_captive_sessions (
+  id             SERIAL PRIMARY KEY,
+  device_id      INTEGER REFERENCES devices(id) ON DELETE SET NULL,
+  hotspot_id     VARCHAR(100),
+  mac_address    VARCHAR(17),
+  ip_address     VARCHAR(45),
+  login_url      TEXT,
+  original_url   TEXT,
+  status         VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+  created_at     TIMESTAMPTZ DEFAULT NOW(),
+  updated_at     TIMESTAMPTZ DEFAULT NOW(),
+  expires_at     TIMESTAMPTZ DEFAULT NOW() + INTERVAL '30 minutes',
+  activated_at   TIMESTAMPTZ,
+  payment_id     INTEGER,
+  session_id     INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_billing_captive_sessions_lookup ON billing_captive_sessions(device_id, mac_address, ip_address, status);
+CREATE INDEX IF NOT EXISTS idx_billing_captive_sessions_expires ON billing_captive_sessions(status, expires_at);
+
+CREATE TABLE IF NOT EXISTS billing_sessions (
+  id              SERIAL PRIMARY KEY,
+  customer_id     INTEGER NOT NULL REFERENCES billing_customers(id) ON DELETE CASCADE,
+  package_id      INTEGER NOT NULL REFERENCES billing_packages(id) ON DELETE RESTRICT,
+  payment_id      INTEGER REFERENCES billing_payments(id) ON DELETE SET NULL,
+  device_id       INTEGER REFERENCES devices(id) ON DELETE SET NULL,
+  captive_session_id INTEGER,
+  voucher_code    VARCHAR(20) UNIQUE,
+  phone           VARCHAR(20),
+  mac_address     VARCHAR(17),
+  ip_address      VARCHAR(45),
+  started_at      TIMESTAMPTZ,
+  expires_at      TIMESTAMPTZ,
+  data_limit_mb   INTEGER,
+  data_used_mb    INTEGER NOT NULL DEFAULT 0,
+  speed_download  VARCHAR(20),
+  speed_upload    VARCHAR(20),
+  device_limit    INTEGER NOT NULL DEFAULT 1,
+  status          VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+  activation_status VARCHAR(30) NOT NULL DEFAULT 'ACTIVE',
+  activation_error  TEXT,
+  router_binding_id VARCHAR(100),
+  queue_name      VARCHAR(100),
+  created_at      TIMESTAMPTZ DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE billing_sessions ADD COLUMN IF NOT EXISTS captive_session_id INTEGER;
+ALTER TABLE billing_sessions ADD COLUMN IF NOT EXISTS activation_status VARCHAR(30) NOT NULL DEFAULT 'ACTIVE';
+ALTER TABLE billing_sessions ADD COLUMN IF NOT EXISTS activation_error TEXT;
+ALTER TABLE billing_sessions ADD COLUMN IF NOT EXISTS router_binding_id VARCHAR(100);
+ALTER TABLE billing_sessions ADD COLUMN IF NOT EXISTS queue_name VARCHAR(100);
+ALTER TABLE billing_sessions ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+CREATE INDEX IF NOT EXISTS idx_billing_sessions_phone ON billing_sessions(phone, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_billing_sessions_status ON billing_sessions(status, expires_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_billing_sessions_payment_once ON billing_sessions(payment_id) WHERE payment_id IS NOT NULL;
+
+CREATE TABLE IF NOT EXISTS billing_sms_logs (
+  id         SERIAL PRIMARY KEY,
+  phone      VARCHAR(20) NOT NULL,
+  provider   VARCHAR(50) NOT NULL DEFAULT 'console',
+  message    TEXT NOT NULL,
+  status     VARCHAR(20) NOT NULL DEFAULT 'SENT',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
 `;
 
 const DEFAULT_SETTINGS = [
@@ -547,6 +673,8 @@ const DEFAULT_SETTINGS = [
   { key: 'change_guard_enabled', value: true },
   { key: 'change_guard_mode', value: 'binary' },
   { key: 'change_guard_timeout_sec', value: 120 },
+  { key: 'billing_enabled', value: true },
+  { key: 'billing_default_currency', value: 'TZS' },
 ];
 
 export async function runMigrations(): Promise<void> {
@@ -563,6 +691,17 @@ export async function runMigrations(): Promise<void> {
         [setting.key, JSON.stringify(setting.value)]
       );
     }
+
+    await client.query(
+      `INSERT INTO billing_packages
+       (name, description, price, currency, duration, duration_unit, data_limit_mb,
+        speed_download, speed_upload, device_limit, is_active)
+       VALUES
+       ('1 Hour', 'Quick access for browsing and messaging', 500, 'TZS', 1, 'hours', NULL, '3M', '3M', 1, TRUE),
+       ('24 Hours', 'One full day of guest internet', 2000, 'TZS', 24, 'hours', 2048, '5M', '5M', 1, TRUE),
+       ('7 Days', 'Weekly access for regular customers', 10000, 'TZS', 7, 'days', 20480, '8M', '8M', 2, TRUE)
+       ON CONFLICT DO NOTHING`
+    );
 
     // Create default admin user if no users exist
     const userCount = await client.query('SELECT COUNT(*) FROM users');

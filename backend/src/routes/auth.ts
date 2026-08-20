@@ -119,7 +119,7 @@ router.post('/totp/setup', requireAuth, async (req: Request, res: Response) => {
 
   const secret = new OTPAuth.Secret({ size: 20 });
   const totp = new OTPAuth.TOTP({
-    issuer: 'MikroTik Manager',
+    issuer: 'Zanfibre',
     label: req.user!.username,
     secret,
     digits: 6,

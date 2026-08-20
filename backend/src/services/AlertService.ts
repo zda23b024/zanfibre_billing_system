@@ -185,7 +185,7 @@ export class AlertService {
     await this.sendToChannel(
       ch,
       'device_online',
-      'This is a test alert from Mikrotik Manager.',
+      'This is a test alert from Zanfibre.',
       { deviceName: 'Test Device' }
     );
   }
@@ -233,21 +233,21 @@ export class AlertService {
     } as nodemailer.TransportOptions);
 
     const label   = EVENT_LABELS[eventType] ?? eventType;
-    const subject = `[Mikrotik Manager] ${label}`;
+    const subject = `[Zanfibre] ${label}`;
     const device  = ctx.deviceName ? `<b>Device:</b> ${ctx.deviceName}<br>` : '';
     const details = ctx.details    ? `<br><pre>${ctx.details}</pre>` : '';
 
     const html = `
 <div style="font-family:sans-serif;max-width:600px">
   <div style="background:#1e40af;color:#fff;padding:12px 20px;border-radius:8px 8px 0 0">
-    <strong>Mikrotik Manager Alert</strong>
+    <strong>Zanfibre Alert</strong>
   </div>
   <div style="border:1px solid #e5e7eb;border-top:none;padding:20px;border-radius:0 0 8px 8px">
     <h2 style="margin:0 0 12px;color:#1f2937">${EVENT_EMOJI[eventType] ?? '🔔'} ${label}</h2>
     <p style="color:#374151">${message}</p>
     <div style="color:#6b7280;font-size:13px">${device}${details}</div>
     <hr style="margin:16px 0;border:none;border-top:1px solid #e5e7eb">
-    <p style="font-size:12px;color:#9ca3af">Sent by Mikrotik Manager · ${new Date().toUTCString()}</p>
+    <p style="font-size:12px;color:#9ca3af">Sent by Zanfibre · ${new Date().toUTCString()}</p>
   </div>
 </div>`;
 
@@ -273,7 +273,7 @@ export class AlertService {
       attachments: [{
         color: this.slackColor(eventType),
         text: `${message}${device}${detail}`,
-        footer: 'Mikrotik Manager',
+        footer: 'Zanfibre',
         ts: Math.floor(Date.now() / 1000),
       }],
     });
@@ -299,7 +299,7 @@ export class AlertService {
         title:       `${EVENT_EMOJI[eventType] ?? '🔔'} ${label}`,
         description: `${message}${device}${detail}`,
         color:       this.discordColor(eventType),
-        footer:      { text: 'Mikrotik Manager' },
+        footer:      { text: 'Zanfibre' },
         timestamp:   new Date().toISOString(),
       }],
     });

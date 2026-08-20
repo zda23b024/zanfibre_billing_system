@@ -15,7 +15,7 @@ if [ ! -f "$CERT" ] || [ ! -f "$KEY" ]; then
         -newkey rsa:2048 \
         -keyout "$KEY" \
         -out "$CERT" \
-        -subj "/CN=Mikrotik Manager/O=Self-Signed/OU=Local/C=US" \
+        -subj "/CN=Zanfibre/O=Self-Signed/OU=Local/C=US" \
         -addext "subjectAltName=IP:127.0.0.1,DNS:localhost" \
         2>/dev/null
     echo "[entrypoint] Self-signed certificate generated (valid 10 years)."

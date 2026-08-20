@@ -1139,7 +1139,7 @@ router.put('/:id/services/:serviceId', requireWrite, async (req, res) => {
   const deviceRow = await queryOne<DeviceRow>(`SELECT * FROM devices WHERE id = $1`, [req.params.id]);
   if (!deviceRow) return res.status(404).json({ error: 'Device not found' });
 
-  // Disabling the very service MikroTik Manager talks to is an immediate, certain
+  // Disabling the very service Zanfibre talks to is an immediate, certain
   // self-lockout — and unlike other changes there is no legitimate way to do it
   // from here, so it is refused outright rather than merely guarded.
   if (req.body.disabled === true) {
@@ -1152,7 +1152,7 @@ router.put('/:id/services/:serviceId', requireWrite, async (req, res) => {
       if (target && target['name'] === mgmtService) {
         return res.status(409).json({
           lockout: true,
-          reason: `'${mgmtService}' is the service MikroTik Manager uses to reach this device. `
+          reason: `'${mgmtService}' is the service Zanfibre uses to reach this device. `
             + `Disabling it would make the device unmanageable from here.`,
         });
       }
@@ -1176,7 +1176,7 @@ router.put('/:id/services/:serviceId', requireWrite, async (req, res) => {
 // GET /api/devices/:id/security-posture — computes a hardening checklist.
 // Heuristic, not standards-based: graduated weighting that won't saturate to 0,
 // de-duplicated services, and it never proposes disabling the management
-// service MikroTik Manager itself connects through (that would self-lockout).
+// service Zanfibre itself connects through (that would self-lockout).
 router.get('/:id/security-posture', async (req, res) => {
   const device = await queryOne<DeviceRow & {
     firmware_update_available?: boolean;
@@ -1225,9 +1225,9 @@ router.get('/:id/security-posture', async (req, res) => {
           detail: 'The plaintext RouterOS API is exposed. Disable "api" and use "api-ssl" (8729).' });
       } else if (name === mgmtService && name === 'api') {
         // The platform is connected through cleartext API — advise, but do NOT
-        // offer to disable it (that would cut MikroTik Manager off the device).
+        // offer to disable it (that would cut Zanfibre off the device).
         checks.push({ id: 'mgmt-api-cleartext', severity: 'low',
-          title: 'MikroTik Manager connects over cleartext API',
+          title: 'Zanfibre connects over cleartext API',
           detail: 'This device is managed via the unencrypted API (8728). Consider migrating the device and its credentials to API-SSL (8729) for encrypted management.' });
       }
     }

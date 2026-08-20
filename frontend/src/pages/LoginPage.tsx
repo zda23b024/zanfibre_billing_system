@@ -1,6 +1,6 @@
 import { useState, FormEvent, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Network, Eye, EyeOff, AlertCircle, ShieldCheck, LogIn } from 'lucide-react';
+import { Zap, Eye, EyeOff, AlertCircle, ShieldCheck, LogIn } from 'lucide-react';
 import { authApi } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import { useThemeStore } from '../store/themeStore';
@@ -103,13 +103,13 @@ export default function LoginPage() {
           <div className={`w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center mb-4 ${
             isDark ? 'shadow-lg shadow-blue-900/50' : 'shadow-lg shadow-blue-400/40'
           }`}>
-            <Network className="w-7 h-7 text-white" />
+            <Zap className="w-7 h-7 text-white" />
           </div>
           <h1 className={`text-2xl font-bold drop-shadow-lg ${isDark ? 'text-white' : 'text-slate-800'}`}>
-            Mikrotik Manager
+            Zanfibre
           </h1>
           <p className={`text-sm mt-1 ${isDark ? 'text-green-400/70' : 'text-cyan-700/80'}`}>
-            Network Management Platform
+            Internet Billing Platform
           </p>
         </div>
 

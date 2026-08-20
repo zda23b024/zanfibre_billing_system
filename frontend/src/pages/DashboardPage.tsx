@@ -746,15 +746,9 @@ function OperationsView({
               to update.
             </div>
           </div>
-          <a
-            href="https://github.com/2GT-Media-Group-LLC/mikrotik-manager/releases"
-            target="_blank"
-            rel="noreferrer"
-            className="text-[12px] font-medium flex-shrink-0 hover:underline"
-            style={{ color: 'var(--info)' }}
-          >
-            Release notes →
-          </a>
+          <span className="text-[12px] font-medium flex-shrink-0" style={{ color: 'var(--info)' }}>
+            Zanfibre update
+          </span>
         </div>
       )}
 

@@ -71,7 +71,7 @@ export class ReportService {
     await transport.sendMail({
       from: smtp.from,
       to: recipients.join(', '),
-      subject: `MikroTik Manager — ${schedule.frequency} network report`,
+      subject: `Zanfibre - ${schedule.frequency} network report`,
       html,
     });
     console.log(`[Reports] sent "${schedule.name}" to ${recipients.length} recipient(s)`);
@@ -130,7 +130,7 @@ export class ReportService {
 
     return `
 <div style="font-family:-apple-system,system-ui,sans-serif;max-width:560px;margin:0 auto;">
-  <h2 style="color:#0f172a;">MikroTik Manager — ${frequency} report</h2>
+  <h2 style="color:#0f172a;">Zanfibre - ${frequency} report</h2>
   <p style="color:#64748b;font-size:13px;">Covering the last ${days} day${days !== 1 ? 's' : ''} · generated ${new Date().toUTCString()}</p>
   <table style="border-collapse:collapse;width:100%;background:#f8fafc;border-radius:8px;">
     ${row('Devices online', `${d?.online ?? 0} / ${d?.total ?? 0}`)}
@@ -142,7 +142,7 @@ export class ReportService {
   </table>
   ${topClients.length ? `<h3 style="color:#0f172a;font-size:14px;margin-top:20px;">Top clients by traffic</h3>
   <table style="border-collapse:collapse;width:100%;background:#f8fafc;border-radius:8px;">${clientRows}</table>` : ''}
-  <p style="color:#94a3b8;font-size:11px;margin-top:20px;">Sent by MikroTik Manager scheduled reports.</p>
+  <p style="color:#94a3b8;font-size:11px;margin-top:20px;">Sent by Zanfibre scheduled reports.</p>
 </div>`;
   }
 }

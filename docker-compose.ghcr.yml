@@ -35,6 +35,18 @@ services:
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
       CORS_ORIGIN: ${CORS_ORIGIN:-https://localhost,http://localhost,https://127.0.0.1,http://127.0.0.1}
       PORT: 3001
+      PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-manual_mixx}
+      DEFAULT_CURRENCY: ${DEFAULT_CURRENCY:-TZS}
+      CUSTOMER_PORTAL_BASE_URL: ${CUSTOMER_PORTAL_BASE_URL:-https://localhost/portal}
+      SELCOM_BASE_URL: ${SELCOM_BASE_URL:-https://api.selcom.business}
+      SELCOM_VENDOR_ID: ${SELCOM_VENDOR_ID:-}
+      SELCOM_API_KEY: ${SELCOM_API_KEY:-}
+      SELCOM_SECRET_KEY: ${SELCOM_SECRET_KEY:-}
+      SELCOM_CALLBACK_URL: ${SELCOM_CALLBACK_URL:-}
+      SELCOM_REDIRECT_URL: ${SELCOM_REDIRECT_URL:-}
+      MIXX_MERCHANT_NUMBER: ${MIXX_MERCHANT_NUMBER:-18198639}
+      MIXX_MERCHANT_NAME: ${MIXX_MERCHANT_NAME:-IBRAHIM YAHYA ALLY}
+      MIXX_QR_IMAGE_PATH: ${MIXX_QR_IMAGE_PATH:-}
     depends_on:
       postgres:
         condition: service_healthy

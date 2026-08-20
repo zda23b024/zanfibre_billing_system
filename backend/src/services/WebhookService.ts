@@ -136,14 +136,14 @@ export class WebhookService {
     const body = JSON.stringify({
       event: 'test',
       timestamp: new Date().toISOString(),
-      data: { message: 'MikroTik Manager webhook test — configuration looks good.' },
+      data: { message: 'Zanfibre webhook test - configuration looks good.' },
     });
     const status = await this.deliver(rows[0], body);
     return { status };
   }
 
   private async deliver(hook: WebhookRow, body: string): Promise<number> {
-    const headers: Record<string, string> = { 'User-Agent': 'MikroTik-Manager-Webhook' };
+    const headers: Record<string, string> = { 'User-Agent': 'Zanfibre-Webhook' };
     if (hook.secret) {
       headers['X-MTM-Signature'] = 'sha256=' + createHmac('sha256', hook.secret).update(body).digest('hex');
     }

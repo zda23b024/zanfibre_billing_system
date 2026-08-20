@@ -39,7 +39,7 @@ export default function SecurityTab({ deviceId, deviceName }: { deviceId: number
   // Some devices report duplicate /ip/service rows (e.g. api twice) — show one per name.
   const services = Array.from(new Map(servicesRaw.map(s => [s.name ?? s['.id'], s])).values());
   // The RouterOS service the platform connects through — never let it be
-  // disabled from here, or MikroTik Manager loses control of the device.
+  // disabled from here, or Zanfibre loses control of the device.
   const { data: device } = useQuery({
     queryKey: ['device', deviceId],
     queryFn: () => devicesApi.get(deviceId).then(r => r.data),
@@ -150,7 +150,7 @@ export default function SecurityTab({ deviceId, deviceName }: { deviceId: number
                   return (
                     <tr key={s['.id'] ?? i} className="hover:bg-gray-50 dark:hover:bg-slate-700/30">
                       <td className={clsx('px-3 py-2 text-xs font-medium', enabled && insecure ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white')}>
-                        {s.name}{isMgmt && <span className="ml-1.5 text-[10px] font-normal text-blue-500" title="MikroTik Manager connects through this service">(managed via)</span>}
+                        {s.name}{isMgmt && <span className="ml-1.5 text-[10px] font-normal text-blue-500" title="Zanfibre connects through this service">(managed via)</span>}
                       </td>
                       <td className="px-3 py-2 font-mono text-xs text-gray-500 dark:text-slate-400">{s.port || '—'}</td>
                       <td className="px-3 py-2 font-mono text-xs text-gray-500 dark:text-slate-400">{s.address || 'any'}</td>
@@ -164,7 +164,7 @@ export default function SecurityTab({ deviceId, deviceName }: { deviceId: number
                       {canWrite && (
                         <td className="px-3 py-2 text-right">
                           {isMgmt ? (
-                            <span className="text-[11px] text-gray-400 flex items-center gap-1 justify-end" title="Disabling this would cut MikroTik Manager off from the device">
+                            <span className="text-[11px] text-gray-400 flex items-center gap-1 justify-end" title="Disabling this would cut Zanfibre off from the device">
                               <Lock className="w-3 h-3" /> in use
                             </span>
                           ) : (

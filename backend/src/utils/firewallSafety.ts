@@ -1,6 +1,6 @@
 // Lockout guard for firewall changes.
 //
-// MikroTik Manager controls devices over the RouterOS API (and admins reach
+// Zanfibre controls devices over the RouterOS API (and admins reach
 // them over SSH/Winbox). A careless `input`-chain drop/reject rule is the
 // classic way to lock both the platform and the operator out of a device. This
 // detects that rule shape so the UI can warn and require explicit confirmation
@@ -88,7 +88,7 @@ export function detectLockoutRisk(
     risky: true,
     reason:
       `This input-chain "${action}" rule has no source restriction and would match management traffic ` +
-      `(SSH/Winbox/API/HTTPS). Applying it can lock MikroTik Manager and admins out of the device. ` +
+      `(SSH/Winbox/API/HTTPS). Applying it can lock Zanfibre and admins out of the device. ` +
       `Scope it with a source address/list, or confirm to apply anyway.`,
   };
 }

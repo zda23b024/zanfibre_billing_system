@@ -5,6 +5,7 @@ import { FitAddon } from '@xterm/addon-fit';
 import { io, Socket } from 'socket.io-client';
 import { X, Maximize2, Minimize2, TerminalSquare, AlertCircle, RefreshCw } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
+import { SOCKET_BASE_URL } from '../config';
 import '@xterm/xterm/css/xterm.css';
 
 const MIN_W = 480;
@@ -58,7 +59,7 @@ export default function TerminalModal({ deviceId, deviceName, onClose }: Props) 
     setConnState('connecting');
     setErrorMsg('');
 
-    const socket = io('/terminal', {
+    const socket = io(`${SOCKET_BASE_URL}/terminal`, {
       path: '/socket.io',
       auth: { token },
       transports: ['websocket', 'polling'],

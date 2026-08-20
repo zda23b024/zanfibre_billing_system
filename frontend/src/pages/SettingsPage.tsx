@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Settings, Users, Key, Plus, Trash2, CheckCircle, AlertCircle, Pencil, X,
   ShieldCheck, ShieldAlert, RefreshCw, Upload, Lock, Bell, Send, KeyRound, ClipboardList, FileText, Zap, LogIn,
+  Eye, EyeOff,
 } from 'lucide-react';
 import { settingsApi, authApi, certApi, alertsApi, auditLogApi, tagsApi, maintenanceApi, configTemplatesApi } from '../services/api';
 import type { MaintenanceWindow, ConfigTemplate } from '../services/api';
@@ -41,6 +42,42 @@ interface EditUserState {
   role: UserRole;
   password: string;
   confirmPassword: string;
+}
+
+function PasswordInput({
+  value,
+  onChange,
+  autoComplete,
+  placeholder,
+  className = 'input',
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  autoComplete?: string;
+  placeholder?: string;
+  className?: string;
+}) {
+  const [show, setShow] = useState(false);
+  return (
+    <div className="relative">
+      <input
+        type={show ? 'text' : 'password'}
+        className={`${className} pr-10`}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        autoComplete={autoComplete}
+        placeholder={placeholder}
+      />
+      <button
+        type="button"
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-500 transition-colors"
+        onClick={() => setShow((s) => !s)}
+        title={show ? 'Hide password' : 'Show password'}
+      >
+        {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+      </button>
+    </div>
+  );
 }
 
 export default function SettingsPage() {
@@ -1023,11 +1060,9 @@ export default function SettingsPage() {
               </div>
               <div>
                 <label className="label">Password</label>
-                <input
-                  type="password"
-                  className="input"
+                <PasswordInput
                   value={newUser.password}
-                  onChange={(e) => setNewUser((f) => ({ ...f, password: e.target.value }))}
+                  onChange={(password) => setNewUser((f) => ({ ...f, password }))}
                   autoComplete="new-password"
                 />
               </div>
@@ -1069,31 +1104,25 @@ export default function SettingsPage() {
             <div className="space-y-3">
               <div>
                 <label className="label">Current Password</label>
-                <input
-                  type="password"
-                  className="input"
+                <PasswordInput
                   value={pwForm.current}
-                  onChange={(e) => setPwForm((f) => ({ ...f, current: e.target.value }))}
+                  onChange={(current) => setPwForm((f) => ({ ...f, current }))}
                   autoComplete="current-password"
                 />
               </div>
               <div>
                 <label className="label">New Password</label>
-                <input
-                  type="password"
-                  className="input"
+                <PasswordInput
                   value={pwForm.next}
-                  onChange={(e) => setPwForm((f) => ({ ...f, next: e.target.value }))}
+                  onChange={(next) => setPwForm((f) => ({ ...f, next }))}
                   autoComplete="new-password"
                 />
               </div>
               <div>
                 <label className="label">Confirm New Password</label>
-                <input
-                  type="password"
-                  className="input"
+                <PasswordInput
                   value={pwForm.confirm}
-                  onChange={(e) => setPwForm((f) => ({ ...f, confirm: e.target.value }))}
+                  onChange={(confirm) => setPwForm((f) => ({ ...f, confirm }))}
                   autoComplete="new-password"
                 />
               </div>
@@ -1156,11 +1185,9 @@ export default function SettingsPage() {
                 </div>
                 <div>
                   <label className="label">Enter your password to disable 2FA</label>
-                  <input
-                    type="password"
-                    className="input"
+                  <PasswordInput
                     value={totpDisablePassword}
-                    onChange={(e) => setTotpDisablePassword(e.target.value)}
+                    onChange={setTotpDisablePassword}
                     autoComplete="current-password"
                   />
                 </div>
@@ -1219,11 +1246,10 @@ export default function SettingsPage() {
               <div className="space-y-3">
                 <div>
                   <label className="label">Confirm your password to set up 2FA</label>
-                  <input
-                    type="password"
+                  <PasswordInput
                     className="input max-w-xs"
                     value={totpSetupPassword}
-                    onChange={(e) => setTotpSetupPassword(e.target.value)}
+                    onChange={setTotpSetupPassword}
                     autoComplete="current-password"
                   />
                 </div>
@@ -1483,11 +1509,9 @@ export default function SettingsPage() {
 
               <div>
                 <label className="label">New Password (leave blank to keep current)</label>
-                <input
-                  type="password"
-                  className="input"
+                <PasswordInput
                   value={editUser.password}
-                  onChange={(e) => setEditUser((s) => s && ({ ...s, password: e.target.value }))}
+                  onChange={(password) => setEditUser((s) => s && ({ ...s, password }))}
                   autoComplete="new-password"
                   placeholder="Leave blank to keep unchanged"
                 />
@@ -1495,13 +1519,9 @@ export default function SettingsPage() {
               {editUser.password && (
                 <div>
                   <label className="label">Confirm New Password</label>
-                  <input
-                    type="password"
-                    className="input"
+                  <PasswordInput
                     value={editUser.confirmPassword}
-                    onChange={(e) =>
-                      setEditUser((s) => s && ({ ...s, confirmPassword: e.target.value }))
-                    }
+                    onChange={(confirmPassword) => setEditUser((s) => s && ({ ...s, confirmPassword }))}
                     autoComplete="new-password"
                   />
                 </div>

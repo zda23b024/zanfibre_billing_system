@@ -95,6 +95,7 @@ const app = express();
 app.set('trust proxy', 1);
 const httpServer = createServer(app);
 const PORT = parseInt(process.env.PORT || '3001', 10);
+const BACKGROUND_WORKERS_ENABLED = process.env.BACKGROUND_WORKERS_ENABLED === 'true';
 
 // ─── Socket.io ────────────────────────────────────────────────────────────────
 const io = new SocketServer(httpServer, {
@@ -378,24 +379,23 @@ async function start(): Promise<void> {
   // Connect Redis
   await redis.connect().catch(() => console.warn('Redis connection warning'));
 
-  // Start poller
   const pollerService = new PollerService();
   pollerService.setSocketServer(io);
   setDevicesPoller(pollerService);
   setBulkAddPollerService(pollerService);
   setTopologyPoller(pollerService);
   setClientsPoller(pollerService);
-  await pollerService.start();
-  await startBulkAddWorker();
-
-  // NetFlow/IPFIX collector (binds its UDP socket only when netflow_enabled)
-  await netflowCollector.start();
-
-  // Firmware rollout scheduler (starts rollouts whose scheduled_at has arrived)
-  firmwareOrchestrator.startScheduler();
-
-  // Scheduled report mailer (hourly check)
-  reportService.startScheduler();
+  if (BACKGROUND_WORKERS_ENABLED) {
+    // Start pollers and schedulers only when this deployment is meant to manage
+    // the live network continuously. Free web hosts often sleep/restart.
+    await pollerService.start();
+    await startBulkAddWorker();
+    await netflowCollector.start();
+    firmwareOrchestrator.startScheduler();
+    reportService.startScheduler();
+  } else {
+    console.log('[startup] background workers disabled');
+  }
 
   const billingExpiryTimer = setInterval(() => {
     billingService.expirePaidSessions().catch((e) =>
@@ -413,9 +413,11 @@ async function start(): Promise<void> {
   const shutdown = async () => {
     console.log('Shutting down...');
     clearInterval(billingExpiryTimer);
-    await stopBulkAddWorker();
-    await netflowCollector.stop();
-    await pollerService.stop();
+    if (BACKGROUND_WORKERS_ENABLED) {
+      await stopBulkAddWorker();
+      await netflowCollector.stop();
+      await pollerService.stop();
+    }
     await redis.quit().catch(() => {});
     await pool.end();
     process.exit(0);

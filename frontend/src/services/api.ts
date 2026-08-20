@@ -514,9 +514,13 @@ export interface BillingPackage {
   is_active: boolean;
 }
 
+export type BillingPackageInput = Omit<BillingPackage, 'id'>;
+
 export const billingApi = {
   stats: () => api.get<Record<string, unknown>>('/billing/stats'),
   packages: () => api.get<BillingPackage[]>('/billing/packages'),
+  createPackage: (data: BillingPackageInput) => api.post<BillingPackage>('/billing/packages', data),
+  updatePackage: (id: number, data: BillingPackageInput) => api.put<BillingPackage>(`/billing/packages/${id}`, data),
   payments: () => api.get<Record<string, string | number | null>[]>('/billing/payments'),
   refreshPayment: (id: number) => api.post<Record<string, unknown>>(`/billing/payments/${id}/refresh`),
   approveManualPayment: (id: number) => api.post<Record<string, unknown>>(`/billing/payments/${id}/approve-manual`),

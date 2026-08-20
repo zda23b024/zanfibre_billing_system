@@ -1,13 +1,48 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CreditCard, Package, RefreshCw, Users, Wifi } from 'lucide-react';
-import { billingApi } from '../services/api';
+import { useEffect, useState } from 'react';
+import { CreditCard, Edit, Package, Plus, RefreshCw, Save, Users, Wifi, X } from 'lucide-react';
+import { billingApi, type BillingPackage, type BillingPackageInput } from '../services/api';
 
 function money(value: unknown) {
   return new Intl.NumberFormat('en-TZ', { style: 'currency', currency: 'TZS', maximumFractionDigits: 0 }).format(Number(value || 0));
 }
 
+const blankPackage: BillingPackageInput = {
+  name: '',
+  description: '',
+  price: '0',
+  currency: 'TZS',
+  duration: 1,
+  duration_unit: 'hours',
+  data_limit_mb: null,
+  speed_download: '',
+  speed_upload: '',
+  device_limit: 1,
+  is_active: true,
+};
+
+function packageToForm(pkg: BillingPackage): BillingPackageInput {
+  return {
+    name: pkg.name,
+    description: pkg.description || '',
+    price: String(pkg.price),
+    currency: pkg.currency || 'TZS',
+    duration: Number(pkg.duration || 1),
+    duration_unit: pkg.duration_unit || 'hours',
+    data_limit_mb: pkg.data_limit_mb === null ? null : Number(pkg.data_limit_mb),
+    speed_download: pkg.speed_download || '',
+    speed_upload: pkg.speed_upload || '',
+    device_limit: Number(pkg.device_limit || 1),
+    is_active: Boolean(pkg.is_active),
+  };
+}
+
 export default function BillingPage() {
   const qc = useQueryClient();
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [form, setForm] = useState<BillingPackageInput>(blankPackage);
+  const [unlimitedData, setUnlimitedData] = useState(true);
+  const [formError, setFormError] = useState('');
   const { data: stats } = useQuery({ queryKey: ['billing-stats'], queryFn: () => billingApi.stats().then((r) => r.data) });
   const { data: packages = [] } = useQuery({ queryKey: ['billing-packages'], queryFn: () => billingApi.packages().then((r) => r.data) });
   const { data: payments = [] } = useQuery({ queryKey: ['billing-payments'], queryFn: () => billingApi.payments().then((r) => r.data) });
@@ -44,6 +79,62 @@ export default function BillingPage() {
       qc.invalidateQueries({ queryKey: ['billing-stats'] });
     },
   });
+  const savePackage = useMutation({
+    mutationFn: (data: BillingPackageInput) => (
+      editingId ? billingApi.updatePackage(editingId, data) : billingApi.createPackage(data)
+    ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['billing-packages'] });
+      setEditingId(null);
+      setForm(blankPackage);
+      setUnlimitedData(true);
+      setFormError('');
+    },
+    onError: (err: unknown) => {
+      setFormError((err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Failed to save package');
+    },
+  });
+
+  useEffect(() => {
+    if (editingId === null) return;
+    const pkg = packages.find((p) => p.id === editingId);
+    if (!pkg) return;
+    setForm(packageToForm(pkg));
+    setUnlimitedData(pkg.data_limit_mb === null);
+    setFormError('');
+  }, [editingId, packages]);
+
+  const startNewPackage = () => {
+    setEditingId(null);
+    setForm(blankPackage);
+    setUnlimitedData(true);
+    setFormError('');
+  };
+
+  const submitPackage = () => {
+    const name = form.name.trim();
+    const price = Number(form.price);
+    const duration = Number(form.duration);
+    const deviceLimit = Number(form.device_limit);
+    const dataLimit = unlimitedData ? null : Number(form.data_limit_mb);
+    if (!name) return setFormError('Package name is required');
+    if (!Number.isFinite(price) || price < 0) return setFormError('Price must be 0 or more');
+    if (!Number.isFinite(duration) || duration < 1) return setFormError('Duration must be at least 1');
+    if (!Number.isFinite(deviceLimit) || deviceLimit < 1) return setFormError('Device limit must be at least 1');
+    if (!unlimitedData && (!Number.isFinite(dataLimit) || Number(dataLimit) < 1)) return setFormError('Data limit must be at least 1 MB');
+    savePackage.mutate({
+      ...form,
+      name,
+      description: form.description?.trim() || null,
+      price: String(price),
+      currency: form.currency || 'TZS',
+      duration,
+      data_limit_mb: dataLimit,
+      speed_download: form.speed_download?.trim() || null,
+      speed_upload: form.speed_upload?.trim() || null,
+      device_limit: deviceLimit,
+    });
+  };
 
   const cards = [
     { label: "Today's revenue", value: money(stats?.today_revenue), icon: CreditCard },
@@ -70,14 +161,106 @@ export default function BillingPage() {
       </div>
 
       <section className="card p-4">
-        <h2 className="font-semibold mb-3" style={{ color: 'var(--ink)' }}>Packages</h2>
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <h2 className="font-semibold" style={{ color: 'var(--ink)' }}>Packages</h2>
+          <button className="btn btn-secondary flex items-center gap-1.5" onClick={startNewPackage}>
+            <Plus className="h-4 w-4" /> New package
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-3 mb-4">
+          <label className="text-xs font-medium" style={{ color: 'var(--ink-3)' }}>
+            Name
+            <input className="input mt-1 w-full" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. 1 Hour" />
+          </label>
+          <label className="text-xs font-medium" style={{ color: 'var(--ink-3)' }}>
+            Price (TZS)
+            <input className="input mt-1 w-full" type="number" min="0" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
+          </label>
+          <label className="text-xs font-medium" style={{ color: 'var(--ink-3)' }}>
+            Duration
+            <div className="flex gap-2 mt-1">
+              <input className="input w-full" type="number" min="1" value={form.duration} onChange={(e) => setForm({ ...form, duration: Number(e.target.value) })} />
+              <select className="input w-32" value={form.duration_unit} onChange={(e) => setForm({ ...form, duration_unit: e.target.value })}>
+                <option value="minutes">Minutes</option>
+                <option value="hours">Hours</option>
+                <option value="days">Days</option>
+              </select>
+            </div>
+          </label>
+          <label className="text-xs font-medium" style={{ color: 'var(--ink-3)' }}>
+            Active
+            <select className="input mt-1 w-full" value={form.is_active ? 'yes' : 'no'} onChange={(e) => setForm({ ...form, is_active: e.target.value === 'yes' })}>
+              <option value="yes">Yes, show to customers</option>
+              <option value="no">No, hide it</option>
+            </select>
+          </label>
+          <label className="text-xs font-medium" style={{ color: 'var(--ink-3)' }}>
+            Download speed
+            <input className="input mt-1 w-full" value={form.speed_download || ''} onChange={(e) => setForm({ ...form, speed_download: e.target.value })} placeholder="e.g. 5M" />
+          </label>
+          <label className="text-xs font-medium" style={{ color: 'var(--ink-3)' }}>
+            Upload speed
+            <input className="input mt-1 w-full" value={form.speed_upload || ''} onChange={(e) => setForm({ ...form, speed_upload: e.target.value })} placeholder="e.g. 5M" />
+          </label>
+          <label className="text-xs font-medium" style={{ color: 'var(--ink-3)' }}>
+            Data limit
+            <div className="flex gap-2 mt-1">
+              <select className="input w-36" value={unlimitedData ? 'unlimited' : 'limited'} onChange={(e) => setUnlimitedData(e.target.value === 'unlimited')}>
+                <option value="unlimited">Unlimited</option>
+                <option value="limited">Limited MB</option>
+              </select>
+              <input
+                className="input w-full"
+                type="number"
+                min="1"
+                disabled={unlimitedData}
+                value={unlimitedData ? '' : form.data_limit_mb ?? ''}
+                onChange={(e) => setForm({ ...form, data_limit_mb: e.target.value ? Number(e.target.value) : null })}
+                placeholder="MB"
+              />
+            </div>
+          </label>
+          <label className="text-xs font-medium" style={{ color: 'var(--ink-3)' }}>
+            Device limit
+            <input className="input mt-1 w-full" type="number" min="1" value={form.device_limit} onChange={(e) => setForm({ ...form, device_limit: Number(e.target.value) })} />
+          </label>
+          <label className="text-xs font-medium xl:col-span-4" style={{ color: 'var(--ink-3)' }}>
+            Description
+            <input className="input mt-1 w-full" value={form.description || ''} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Shown internally and useful for package notes" />
+          </label>
+        </div>
+
+        {formError && <div className="mb-3 text-sm text-red-600">{formError}</div>}
+        <div className="flex items-center gap-2 mb-4">
+          <button className="btn btn-primary flex items-center gap-1.5" disabled={savePackage.isPending} onClick={submitPackage}>
+            <Save className="h-4 w-4" /> {editingId ? 'Save package' : 'Create package'}
+          </button>
+          {editingId && (
+            <button className="btn btn-secondary flex items-center gap-1.5" onClick={startNewPackage}>
+              <X className="h-4 w-4" /> Cancel edit
+            </button>
+          )}
+        </div>
+
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead style={{ color: 'var(--ink-3)' }}><tr><th className="text-left py-2">Name</th><th className="text-left">Price</th><th className="text-left">Duration</th><th className="text-left">Speed</th><th className="text-left">Active</th></tr></thead>
+            <thead style={{ color: 'var(--ink-3)' }}><tr><th className="text-left py-2">Name</th><th className="text-left">Price</th><th className="text-left">Duration</th><th className="text-left">Speed</th><th className="text-left">Data</th><th className="text-left">Devices</th><th className="text-left">Active</th><th className="text-right">Edit</th></tr></thead>
             <tbody>
               {packages.map((p) => (
                 <tr key={p.id} className="border-t" style={{ borderColor: 'var(--line)' }}>
-                  <td className="py-2">{p.name}</td><td>{money(p.price)}</td><td>{p.duration} {p.duration_unit}</td><td>{p.speed_download || 'Best effort'}</td><td>{p.is_active ? 'Yes' : 'No'}</td>
+                  <td className="py-2">{p.name}</td>
+                  <td>{money(p.price)}</td>
+                  <td>{p.duration} {p.duration_unit}</td>
+                  <td>{p.speed_download && p.speed_upload ? `${p.speed_download}/${p.speed_upload}` : p.speed_download || 'Best effort'}</td>
+                  <td>{p.data_limit_mb ? `${p.data_limit_mb} MB` : 'Unlimited'}</td>
+                  <td>{p.device_limit}</td>
+                  <td>{p.is_active ? 'Yes' : 'No'}</td>
+                  <td className="text-right">
+                    <button className="btn btn-secondary px-2 py-1" onClick={() => setEditingId(p.id)} title="Edit package">
+                      <Edit className="h-4 w-4" />
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
